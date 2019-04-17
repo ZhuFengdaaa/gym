@@ -1,4 +1,5 @@
 import os
+import os.path as osp
 
 from gym import error, spaces
 from gym.utils import seeding
@@ -12,19 +13,31 @@ try:
 except ImportError as e:
     raise error.DependencyNotInstalled("{}. (HINT: you need to install mujoco_py, and also perform the setup instructions here: https://github.com/openai/mujoco-py/.)".format(e))
 
+MODEL_DIR = osp.abspath(
+    osp.join(
+        osp.dirname(__file__),
+        'assets'
+    )
+)
+
+BIG = 1e6
+
 DEFAULT_SIZE = 500
 
 class MujocoEnv(gym.Env):
     """Superclass for all MuJoCo environments.
     """
 
-    def __init__(self, model_path, frame_skip, rgb_rendering_tracking=True):
-        if model_path.startswith("/"):
-            fullpath = model_path
+    def __init__(self, model_path, frame_skip, rgb_rendering_tracking=True, file_path=None):
+        if file_path is None:
+            if model_path.startswith("/"):
+                fullpath = model_path
+            else:
+                fullpath = os.path.join(os.path.dirname(__file__), "assets", model_path)
+            if not path.exists(fullpath):
+                raise IOError("File %s does not exist" % fullpath)
         else:
-            fullpath = os.path.join(os.path.dirname(__file__), "assets", model_path)
-        if not path.exists(fullpath):
-            raise IOError("File %s does not exist" % fullpath)
+            fullpath = file_path
         self.frame_skip = frame_skip
         self.model = mujoco_py.load_model_from_path(fullpath)
         self.sim = mujoco_py.MjSim(self.model)

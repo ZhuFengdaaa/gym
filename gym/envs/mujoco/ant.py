@@ -3,8 +3,11 @@ from gym import utils
 from gym.envs.mujoco import mujoco_env
 
 class AntEnv(mujoco_env.MujocoEnv, utils.EzPickle):
-    def __init__(self):
-        mujoco_env.MujocoEnv.__init__(self, 'ant.xml', 5)
+    FILE = 'ant.xml'
+    ORI_IND = 3
+
+    def __init__(self, file_path=None):
+        mujoco_env.MujocoEnv.__init__(self, 'ant.xml', 5, file_path=file_path)
         utils.EzPickle.__init__(self)
 
     def step(self, a):
