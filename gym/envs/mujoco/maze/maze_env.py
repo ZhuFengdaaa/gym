@@ -43,7 +43,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
             coef_inner_rew=0.,  # a coef of 0 gives no reward to the maze from the wrapped env.
             goal_rew=1.,  # reward obtained when reaching the goal
             dist_coef=1.,
-            time_punish=-0.01,
+            time_punish=-1.,
             *args,
             **kwargs):
         utils.EzPickle.__init__(self)
