@@ -1,3 +1,4 @@
+import time
 import os.path as osp
 import tempfile
 import xml.etree.ElementTree as ET
@@ -9,6 +10,7 @@ from gym import spaces
 from gym import utils
 from gym.envs.proxy_env import ProxyEnv
 from gym.envs.mujoco.maze.maze_env_utils import construct_maze
+from gym.envs.mujoco.maze.maze_solver import MazeSolver
 from gym.envs.mujoco.mujoco_env import MODEL_DIR, BIG
 from gym.envs.mujoco.maze.maze_env_utils import ray_segment_intersect, point_distance
 
@@ -40,6 +42,8 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
             maze_size_scaling=2,
             coef_inner_rew=0.,  # a coef of 0 gives no reward to the maze from the wrapped env.
             goal_rew=1.,  # reward obtained when reaching the goal
+            dist_coef=1.,
+            time_punish=-0.01,
             *args,
             **kwargs):
         utils.EzPickle.__init__(self)
@@ -50,6 +54,12 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self.length = length
         self.coef_inner_rew = coef_inner_rew
         self.goal_rew = goal_rew
+        self.h = len(self.MAZE_STRUCTURE)
+        self.w = len(self.MAZE_STRUCTURE[0])
+        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10, debug=False)
+        self.maze_solver.bfs()
+        self.dist_coef = dist_coef
+        self.time_punish = time_punish
 
         model_cls = self.__class__.MODEL_CLASS
         if model_cls is None:
@@ -270,6 +280,12 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
                         return True
         return False
 
+    def normalize(self, x, y):
+        # print(x,y,self._init_torso_x, self.MAZE_SIZE_SCALING, self.w)
+        _x = ((x + self._init_torso_x)/self.MAZE_SIZE_SCALING+0.5)/self.w
+        _y = ((y + self._init_torso_y)/self.MAZE_SIZE_SCALING+0.5)/self.h
+        return _x, _y
+
     def step(self, action):
         if self.MANUAL_COLLISION:
             old_pos = self.wrapped_env.get_xy()
@@ -280,19 +296,34 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
                 done = False
         else:
             inner_next_obs, inner_rew, done, info = self.wrapped_env.step(action)
+        t1 = time.perf_counter()
         next_obs = self._get_obs()
+        t2 = time.perf_counter()
         x, y = self.wrapped_env.get_body_com("torso")[:2]
+        _x, _y = self.normalize(x, y)
+        dist = self.maze_solver.distance((_y, _x))
         # ref_x = x + self._init_torso_x
         # ref_y = y + self._init_torso_y
         info['outer_rew'] = 0
         info['inner_rew'] = inner_rew
         reward = self.coef_inner_rew * inner_rew
         minx, maxx, miny, maxy = self._goal_range
+        # reward += self.dist_coef * 1/ (dist+1e-3)
+        if dist<0.1:
+            print((minx, maxx), (miny, maxy))
+            print(x, y, dist, (minx <= x <= maxx), (miny <= y <= maxy))
+            # assert(1==2)
+        # reward += self.dist_coef * 1/ (dist+1e-2)
+        reward += self.dist_coef * 1 / (dist+1)
+        # reward += self.time_punish
+        # print(self.coef_inner_rew * inner_rew, self.dist_coef * 1/dist)
         if minx <= x <= maxx and miny <= y <= maxy:
+            print("succeed!")
             done = True
             reward += self.goal_rew
             info['rew_rew'] = 1  # we keep here the original one, so that the AvgReturn is directly the freq of success
         # return Step(next_obs, reward, done, **info)
+        # print("maze forward: %f %f %f" % (t1-tstart, t2-t1, tend-t2))
         return next_obs, reward, done, info
 
     def action_from_key(self, key):

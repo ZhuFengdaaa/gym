@@ -1,3 +1,4 @@
+import time
 import numpy as np
 from gym import utils
 from gym.envs.mujoco import mujoco_env
@@ -25,6 +26,7 @@ class AntEnv(mujoco_env.MujocoEnv, utils.EzPickle):
             and state[2] >= 0.2 and state[2] <= 1.0
         done = not notdone
         ob = self._get_obs()
+        # print("ant forward: %f" % (tend-tstart))
         return ob, reward, done, dict(
             reward_forward=forward_reward,
             reward_ctrl=-ctrl_cost,
