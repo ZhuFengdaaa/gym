@@ -322,6 +322,13 @@ register(
 )
 
 register(
+    id='CAntMaze-v1',
+    entry_point='gym.envs.mujoco.maze:CAntMazeEnv',
+    max_episode_steps=1000,
+    reward_threshold=6000.0,
+)
+
+register(
     id='Humanoid-v2',
     entry_point='gym.envs.mujoco:HumanoidEnv',
     max_episode_steps=1000,

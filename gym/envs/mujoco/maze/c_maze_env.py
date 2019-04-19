@@ -1,4 +1,5 @@
 import time
+import os 
 import os.path as osp
 import tempfile
 import xml.etree.ElementTree as ET
@@ -9,25 +10,18 @@ from gym import spaces
 # from gym.envs.base import Step
 from gym import utils
 from gym.envs.proxy_env import ProxyEnv
-from gym.envs.mujoco.maze.maze_env_utils import construct_maze
+from gym.envs.mujoco.maze.maze_dataset import MazeDataset
 from gym.envs.mujoco.maze.maze_solver import MazeSolver
 from gym.envs.mujoco.mujoco_env import MODEL_DIR, BIG
 from gym.envs.mujoco.maze.maze_env_utils import ray_segment_intersect, point_distance
 
-class MazeEnv(ProxyEnv, utils.EzPickle):
+class CMazeEnv(ProxyEnv, utils.EzPickle):
     MODEL_CLASS = None
     ORI_IND = None
 
     MAZE_HEIGHT = None
     MAZE_SIZE_SCALING = None
     MAZE_MAKE_CONTACTS = False
-    MAZE_STRUCTURE = [
-        [1, 1, 1, 1, 1],
-        [1, 'r', 0, 0, 1],
-        [1, 1, 1, 0, 1],
-        [1, 'g', 0, 0, 1],
-        [1, 1, 1, 1, 1],
-    ]
 
     MANUAL_COLLISION = False
 
@@ -39,7 +33,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
             maze_id=0,
             length=1,
             maze_height=0.5,
-            maze_size_scaling=4,
+            maze_size_scaling=2,
             coef_inner_rew=0,  # a coef of 0 gives no reward to the maze from the wrapped env.
             goal_rew=1.,  # reward obtained when reaching the goal
             dist_coef=1.,
@@ -48,6 +42,8 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
             *args,
             **kwargs):
         utils.EzPickle.__init__(self)
+        self.args = args
+        self.kwargs = kwargs
         self._n_bins = n_bins
         self._sensor_range = sensor_range
         self._sensor_span = sensor_span
@@ -55,9 +51,13 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self.length = length
         self.coef_inner_rew = coef_inner_rew
         self.goal_rew = goal_rew
-        self.h = len(self.MAZE_STRUCTURE)
-        self.w = len(self.MAZE_STRUCTURE[0])
-        self.MAZE_SIZE_SCALING = size_scaling = maze_size_scaling
+        json_path = osp.join(os.path.dirname(os.path.realpath(__file__)), "meta_maze.json")
+        self.maze_dataset = MazeDataset(json_path)
+        self.maze_name = self.MAZE_STRUCTURE = self.h = self.w = self.inner_env = None
+        self._init_torso_x = self._init_torso_y = None
+        self.MAZE_SIZE_SCALING = maze_size_scaling
+        self.MAZE_HEIGHT = height = maze_height
+        self.update_maze()
         self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10*self.MAZE_SIZE_SCALING, debug=False)
         self.maze_solver.bfs()
         self.dist_coef = dist_coef
@@ -65,21 +65,18 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self.short_coef = short_coef
         self.last_dist=None
         self.cnt=0
+        ProxyEnv.__init__(self, self.inner_env)  # here is where the robot env will be initialized
 
+    def update_inner_env(self, structure, height, size_scaling):
         model_cls = self.__class__.MODEL_CLASS
         if model_cls is None:
             raise "MODEL_CLASS unspecified!"
         xml_path = osp.join(MODEL_DIR, model_cls.FILE)
         tree = ET.parse(xml_path)
         worldbody = tree.find(".//worldbody")
-
-        self.MAZE_HEIGHT = height = maze_height
-        self.MAZE_STRUCTURE = structure = construct_maze(maze_id=self._maze_id, length=self.length)
-
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
         self._init_torso_y = torso_y
-
         for i in range(len(structure)):
             for j in range(len(structure[0])):
                 if str(structure[i][j]) == '1':
@@ -127,8 +124,18 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self._goal_range = self._find_goal_range()
         self._cached_segments = None
 
-        inner_env = model_cls(*args, file_path=file_path, **kwargs)  # file to the robot specifications
-        ProxyEnv.__init__(self, inner_env)  # here is where the robot env will be initialized
+        self.inner_env = model_cls(*(self.args), file_path=file_path, **(self.kwargs))  # file to the robot specifications
+
+    def next_task(self):
+        self.maze_dataset.next_task()
+        self.update_maze()
+
+    def update_maze(self):
+        self.maze_name, self.MAZE_STRUCTURE = self.maze_dataset.get_curr_maze()
+        self.h = len(self.MAZE_STRUCTURE)
+        self.w = len(self.MAZE_STRUCTURE[0])
+        self.update_inner_env(self.MAZE_STRUCTURE, self.MAZE_HEIGHT, 
+                self.MAZE_SIZE_SCALING)
 
     def get_current_maze_obs(self):
         # The observation would include both information about the robot itself as well as the sensors around its
@@ -205,7 +212,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
     def _get_obs(self):
         return np.concatenate([self.wrapped_env._get_obs(),
                                self.get_current_maze_obs(),
-                               self.MazeDataset().get_maze_id(),
+                               self.maze_dataset.get_curr_enc(),
                                ])
 
     def get_ori(self):
