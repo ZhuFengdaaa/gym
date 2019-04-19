@@ -24,7 +24,7 @@ class MazeDataset():
                 continue
             for i in range(len(maze_dic[k])):
                 maze_list.append((k+str(i), maze_dic[k][i]))
-        return maze_list 
+        return maze_list
 
     def next_task(self):
         self.current_task+=1

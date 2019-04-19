@@ -11,6 +11,9 @@ class ProxyEnv(Env, utils.EzPickle):
     def wrapped_env(self):
         return self._wrapped_env
 
+    def update(self, wrapped_env):
+        self._wrapped_env = wrapped_env
+
     def reset(self, **kwargs):
         return self._wrapped_env.reset(**kwargs)
 

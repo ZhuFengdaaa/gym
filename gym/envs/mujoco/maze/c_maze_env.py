@@ -1,5 +1,5 @@
 import time
-import os 
+import os
 import os.path as osp
 import tempfile
 import xml.etree.ElementTree as ET
@@ -125,6 +125,11 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self._cached_segments = None
 
         self.inner_env = model_cls(*(self.args), file_path=file_path, **(self.kwargs))  # file to the robot specifications
+        ProxyEnv.update(self, self.inner_env)  # update proxy
+
+    def reset_task(self):
+        self.maze_dataset.current_task = 0
+        self.update_maze()
 
     def next_task(self):
         self.maze_dataset.next_task()
@@ -134,7 +139,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.maze_name, self.MAZE_STRUCTURE = self.maze_dataset.get_curr_maze()
         self.h = len(self.MAZE_STRUCTURE)
         self.w = len(self.MAZE_STRUCTURE[0])
-        self.update_inner_env(self.MAZE_STRUCTURE, self.MAZE_HEIGHT, 
+        self.update_inner_env(self.MAZE_STRUCTURE, self.MAZE_HEIGHT,
                 self.MAZE_SIZE_SCALING)
 
     def get_current_maze_obs(self):
