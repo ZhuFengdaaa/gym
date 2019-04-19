@@ -40,10 +40,11 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
             length=1,
             maze_height=0.5,
             maze_size_scaling=2,
-            coef_inner_rew=0.,  # a coef of 0 gives no reward to the maze from the wrapped env.
+            coef_inner_rew=0,  # a coef of 0 gives no reward to the maze from the wrapped env.
             goal_rew=1.,  # reward obtained when reaching the goal
             dist_coef=1.,
-            time_punish=-1.,
+            time_punish=0.033,
+            short_coef=20.,
             *args,
             **kwargs):
         utils.EzPickle.__init__(self)
@@ -56,10 +57,13 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self.goal_rew = goal_rew
         self.h = len(self.MAZE_STRUCTURE)
         self.w = len(self.MAZE_STRUCTURE[0])
-        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10, debug=False)
+        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 3, debug=False)
         self.maze_solver.bfs()
         self.dist_coef = dist_coef
         self.time_punish = time_punish
+        self.short_coef = short_coef
+        self.last_dist=None
+        self.cnt=0
 
         model_cls = self.__class__.MODEL_CLASS
         if model_cls is None:
@@ -218,6 +222,8 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         return self.wrapped_env.sim.data.qpos[self.__class__.ORI_IND]
 
     def reset(self):
+        self.cnt=0
+        self.last_dist=None
         self.wrapped_env.reset()
         return self._get_obs()
 
@@ -306,16 +312,26 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         # ref_y = y + self._init_torso_y
         info['outer_rew'] = 0
         info['inner_rew'] = inner_rew
-        reward = self.coef_inner_rew * inner_rew
+        ant_reward = self.coef_inner_rew * inner_rew
         minx, maxx, miny, maxy = self._goal_range
-        # reward += self.dist_coef * 1/ (dist+1e-3)
         if dist<0.1:
             print((minx, maxx), (miny, maxy))
             print(x, y, dist, (minx <= x <= maxx), (miny <= y <= maxy))
             # assert(1==2)
-        # reward += self.dist_coef * 1/ (dist+1e-2)
-        reward += self.dist_coef * 1 / (dist+1)
-        # reward += self.time_punish
+        # reward += self.dist_coef * 1 / (dist+1)
+        if self.last_dist is None:
+            short_reward = 0
+        else:
+            short_reward = (self.last_dist - dist) * self.short_coef
+        self.last_dist = dist
+        ctrl_cost = .5 * np.square(action).sum()
+        contact_cost = 0.5 * 1e-3 * np.sum(
+                np.square(np.clip(self.wrapped_env.data.cfrc_ext, -1, 1)))
+        # print(ant_reward, short_reward, self.time_punish, ctrl_cost, contact_cost)
+        reward = ant_reward + short_reward - self.time_punish - ctrl_cost - contact_cost
+        # print(self.coef_inner_rew * inner_rew, self.dist_coef * 1 / (dist+1))
+        # self.cnt+=1
+        # reward += self.time_punish * self.cnt
         # print(self.coef_inner_rew * inner_rew, self.dist_coef * 1/dist)
         if minx <= x <= maxx and miny <= y <= maxy:
             print("succeed!")
