@@ -57,7 +57,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self.goal_rew = goal_rew
         self.h = len(self.MAZE_STRUCTURE)
         self.w = len(self.MAZE_STRUCTURE[0])
-        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 3, debug=False)
+        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10, debug=False)
         self.maze_solver.bfs()
         self.dist_coef = dist_coef
         self.time_punish = time_punish
