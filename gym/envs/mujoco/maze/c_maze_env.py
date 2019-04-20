@@ -62,7 +62,6 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.time_punish = time_punish
         self.short_coef = short_coef
         self.last_dist=None
-        self.cnt=0
         ProxyEnv.__init__(self, self.inner_env)  # here is where the robot env will be initialized
 
     def update_inner_env(self, structure, height, size_scaling):
@@ -117,7 +116,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
                             )
 
         _, file_path = tempfile.mkstemp(text=True, suffix=".xml")
-        tree.write(file_path)  # here we write a temporal file with the robot specifications. Why not the original one??
+        tree.write(_)  # here we write a temporal file with the robot specifications. Why not the original one??
 
         self._goal_range = self._find_goal_range()
         self._cached_segments = None
@@ -129,18 +128,19 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         return self.maze_dataset.task_num
 
     def get_task_name(self):
-        return self.maze_dataset.get_curr_maze()[0]
+        return self.maze_dataset.get_maze()[0]
+
+    def get_max_task_name(self):
+        return self.maze_dataset.get_maze(self.maze_dataset.max_task)[0]
 
     def reset_task(self):
-        self.maze_dataset.current_task = 0
-        self.update_maze()
+        self.maze_dataset.reset_task()
 
     def next_task(self):
         self.maze_dataset.next_task()
-        self.update_maze()
 
     def update_maze(self):
-        self.maze_name, self.MAZE_STRUCTURE = self.maze_dataset.get_curr_maze()
+        self.maze_name, self.MAZE_STRUCTURE = self.maze_dataset.get_maze()
         self.h = len(self.MAZE_STRUCTURE)
         self.w = len(self.MAZE_STRUCTURE[0])
         self.update_inner_env(self.MAZE_STRUCTURE, self.MAZE_HEIGHT,
@@ -241,7 +241,8 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         return self.wrapped_env.sim.data.qpos[self.__class__.ORI_IND]
 
     def reset(self):
-        self.cnt=0
+        self.maze_dataset.sample_task()
+        self.update_maze()
         self.last_dist=None
         self.wrapped_env.reset()
         return self._get_obs()

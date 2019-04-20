@@ -1,4 +1,5 @@
 import json
+import random
 import numpy as np
 
 
@@ -12,7 +13,8 @@ class MazeDataset():
         self.task_num = len(self.maze_list)
         print(self.maze_list)
         print(self.task_num)
-        self.current_task = 0
+        self.max_task = 0
+        self.current_task = None
 
     def read_maze(self, filename):
         print(filename)
@@ -27,16 +29,21 @@ class MazeDataset():
         return maze_list
 
     def next_task(self):
-        self.current_task+=1
+        self.max_task+=1
 
-    def current_task(self):
-        return self.current_task
+    def reset_task(self):
+        self.max_task = 0
 
-    def get_maze(self, i):
-        return self.maze_list[i]
+    def sample_task(self):
+        self.current_task = random.randint(0, self.max_task)
 
-    def get_curr_maze(self):
-        return self.maze_list[self.current_task]
+    def get_maze(self, i=None):
+        if i is None:
+            if self.current_task is None:
+                self.sample_task()
+            return self.maze_list[self.current_task]
+        else:
+            return self.maze_list[i]
 
     def get_curr_enc(self):
         encoding = [0 for i in range(self.task_num)]
