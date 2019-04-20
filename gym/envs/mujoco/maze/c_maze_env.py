@@ -125,6 +125,12 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.inner_env = model_cls(*(self.args), file_path=file_path, **(self.kwargs))  # file to the robot specifications
         ProxyEnv.update(self, self.inner_env)  # update proxy
 
+    def get_task_num(self):
+        return self.maze_dataset.task_num
+
+    def get_task_name(self):
+        return self.maze_dataset.get_curr_maze()[0]
+
     def reset_task(self):
         self.maze_dataset.current_task = 0
         self.update_maze()
