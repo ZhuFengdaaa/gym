@@ -21,12 +21,24 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
     MAZE_HEIGHT = None
     MAZE_SIZE_SCALING = None
     MAZE_MAKE_CONTACTS = False
+    # MAZE_STRUCTURE = [
+    #     [1, 1, 1, 1, 1],
+    #     [1, 'r', 0, 0, 1],
+    #     [1, 1, 1, 0, 1],
+    #     [1, 'g', 0, 0, 1],
+    #     [1, 1, 1, 1, 1],
+    # ]
     MAZE_STRUCTURE = [
-        [1, 1, 1, 1, 1],
-        [1, 'r', 0, 0, 1],
-        [1, 1, 1, 0, 1],
-        [1, 'g', 0, 0, 1],
-        [1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, "r", 0, 0, 0, 0, 0, 1, 1],
+        [1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 0, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 0, 0, 1, 1],
+        [1, 1, 0, 0, 0, 0, 0, 0, 1, 1],
+        [1, 1, "g", 0, 0, 0, 0, 0, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
     ]
 
     MANUAL_COLLISION = False
@@ -39,7 +51,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
             maze_id=0,
             length=1,
             maze_height=0.5,
-            maze_size_scaling=4,
+            maze_size_scaling=2,
             coef_inner_rew=0,  # a coef of 0 gives no reward to the maze from the wrapped env.
             goal_rew=1.,  # reward obtained when reaching the goal
             dist_coef=1.,
@@ -58,7 +70,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         self.h = len(self.MAZE_STRUCTURE)
         self.w = len(self.MAZE_STRUCTURE[0])
         self.MAZE_SIZE_SCALING = size_scaling = maze_size_scaling
-        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10*self.MAZE_SIZE_SCALING, debug=False)
+        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10, debug=False)
         self.maze_solver.bfs()
         self.dist_coef = dist_coef
         self.time_punish = time_punish
@@ -74,7 +86,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         worldbody = tree.find(".//worldbody")
 
         self.MAZE_HEIGHT = height = maze_height
-        self.MAZE_STRUCTURE = structure = construct_maze(maze_id=self._maze_id, length=self.length)
+        structure = self.MAZE_STRUCTURE
 
         torso_x, torso_y = self._find_robot()
         self._init_torso_x = torso_x
@@ -204,8 +216,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
 
     def _get_obs(self):
         return np.concatenate([self.wrapped_env._get_obs(),
-                               self.get_current_maze_obs(),
-                               self.MazeDataset().get_maze_id(),
+                               self.get_current_maze_obs()
                                ])
 
     def get_ori(self):
@@ -308,7 +319,7 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         t2 = time.perf_counter()
         x, y = self.wrapped_env.get_body_com("torso")[:2]
         _x, _y = self.normalize(x, y)
-        dist = self.maze_solver.distance((_y, _x)) * self.MAZE_SIZE_SCALING
+        dist = self.maze_solver.distance((_y, _x))
         # ref_x = x + self._init_torso_x
         # ref_y = y + self._init_torso_y
         info['outer_rew'] = 0
@@ -318,6 +329,12 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
         if dist<0.1:
             print((minx, maxx), (miny, maxy))
             print(x, y, dist, (minx <= x <= maxx), (miny <= y <= maxy))
+        if dist > 100000:
+            print("dist: ", dist)
+            self.maze_solver.test()
+            print((minx, maxx), (miny, maxy))
+            print(x, y, dist, (minx <= x <= maxx), (miny <= y <= maxy))
+            assert(False)
             # assert(1==2)
         # reward += self.dist_coef * 1 / (dist+1)
         if self.last_dist is None:
@@ -330,6 +347,8 @@ class MazeEnv(ProxyEnv, utils.EzPickle):
                 np.square(np.clip(self.wrapped_env.data.cfrc_ext, -1, 1)))
         # print(ant_reward, short_reward, self.time_punish, ctrl_cost, contact_cost)
         reward = ant_reward + short_reward - self.time_punish - ctrl_cost - contact_cost
+        if abs(reward)>100:
+            print(ant_reward, short_reward, self.time_punish, ctrl_cost, contact_cost)
         # print(self.coef_inner_rew * inner_rew, self.dist_coef * 1 / (dist+1))
         # self.cnt+=1
         # reward += self.time_punish * self.cnt

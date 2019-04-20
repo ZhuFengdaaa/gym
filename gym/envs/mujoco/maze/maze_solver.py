@@ -74,14 +74,14 @@ class MazeSolver():
     def test(self):
         for i in range(self.h):
             for j in range(self.w):
-                print("%-9s" % self.graph[i][j], end='')
+                print("%-4s" % self.graph[i][j], end='')
             print("")
         for i in range(self.h):
             for j in range(self.w):
                 if abs(self.mp[i][j] - self.inf) < 1e-4:
-                    print("%-9s" % 'inf', end='')
+                    print("%-4s" % 'inf', end='')
                 else:
-                    print("%-9i" % int(self.mp[i][j]), end='')
+                    print("%-4i" % int(self.mp[i][j]), end='')
             print("")
 
     def maze_get(self, maze, pos):

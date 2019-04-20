@@ -37,7 +37,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
             coef_inner_rew=0,  # a coef of 0 gives no reward to the maze from the wrapped env.
             goal_rew=1.,  # reward obtained when reaching the goal
             dist_coef=1.,
-            time_punish=0.033,
+            time_punish=0.0033,
             short_coef=20.,
             *args,
             **kwargs):
@@ -58,8 +58,6 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.MAZE_SIZE_SCALING = maze_size_scaling
         self.MAZE_HEIGHT = height = maze_height
         self.update_maze()
-        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10*self.MAZE_SIZE_SCALING, debug=False)
-        self.maze_solver.bfs()
         self.dist_coef = dist_coef
         self.time_punish = time_punish
         self.short_coef = short_coef
@@ -141,6 +139,8 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.w = len(self.MAZE_STRUCTURE[0])
         self.update_inner_env(self.MAZE_STRUCTURE, self.MAZE_HEIGHT,
                 self.MAZE_SIZE_SCALING)
+        self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10, debug=False)
+        self.maze_solver.bfs()
 
     def get_current_maze_obs(self):
         # The observation would include both information about the robot itself as well as the sensors around its
@@ -320,7 +320,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         t2 = time.perf_counter()
         x, y = self.wrapped_env.get_body_com("torso")[:2]
         _x, _y = self.normalize(x, y)
-        dist = self.maze_solver.distance((_y, _x)) * self.MAZE_SIZE_SCALING
+        dist = self.maze_solver.distance((_y, _x))
         # ref_x = x + self._init_torso_x
         # ref_y = y + self._init_torso_y
         info['outer_rew'] = 0
