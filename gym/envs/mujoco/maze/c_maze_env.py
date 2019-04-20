@@ -38,7 +38,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
             goal_rew=1.,  # reward obtained when reaching the goal
             dist_coef=1.,
             time_punish=0.0033,
-            short_coef=20.,
+            short_coef=200.,
             *args,
             **kwargs):
         utils.EzPickle.__init__(self)
