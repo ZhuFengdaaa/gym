@@ -62,6 +62,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.time_punish = time_punish
         self.short_coef = short_coef
         self.last_dist=None
+        self.x = self.y = None
         ProxyEnv.__init__(self, self.inner_env)  # here is where the robot env will be initialized
 
     def update_inner_env(self, structure, height, size_scaling):
@@ -137,7 +138,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.maze_dataset.reset_task()
 
     def next_task(self):
-        self.maze_dataset.next_task()
+        return self.maze_dataset.next_task()
 
     def update_maze(self):
         self.maze_name, self.MAZE_STRUCTURE = self.maze_dataset.get_maze()
@@ -147,6 +148,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
                 self.MAZE_SIZE_SCALING)
         self.maze_solver = MazeSolver(self.MAZE_STRUCTURE, 10, debug=False)
         self.maze_solver.bfs()
+        # self.maze_solver.test()
 
     def get_current_maze_obs(self):
         # The observation would include both information about the robot itself as well as the sensors around its
@@ -242,7 +244,8 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
 
     def reset(self):
         self.maze_dataset.sample_task()
-        self.update_maze()
+        if self.maze_dataset.current_before != self.maze_dataset.current_task:
+            self.update_maze()
         self.last_dist=None
         self.wrapped_env.reset()
         return self._get_obs()
@@ -312,6 +315,14 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         _y = ((y + self._init_torso_y)/self.MAZE_SIZE_SCALING+0.5)/self.h
         return _x, _y
 
+    @property
+    def shorten_dist(self):
+        _x, _y = self.normalize(self.x, self.y)
+        end_dist = self.maze_solver.distance((_y, _x))
+        __x, __y = self.normalize(0, 0)
+        start_dist = self.maze_solver.distance((__y, __x))
+        return start_dist - end_dist
+
     def step(self, action):
         if self.MANUAL_COLLISION:
             old_pos = self.wrapped_env.get_xy()
@@ -326,6 +337,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         next_obs = self._get_obs()
         t2 = time.perf_counter()
         x, y = self.wrapped_env.get_body_com("torso")[:2]
+        (self.x, self.y) = (x,y)
         _x, _y = self.normalize(x, y)
         dist = self.maze_solver.distance((_y, _x))
         # ref_x = x + self._init_torso_x

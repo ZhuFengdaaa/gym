@@ -15,6 +15,7 @@ class MazeDataset():
         print(self.task_num)
         self.max_task = 0
         self.current_task = None
+        self.current_before = None
 
     def read_maze(self, filename):
         print(filename)
@@ -30,12 +31,16 @@ class MazeDataset():
 
     def next_task(self):
         self.max_task+=1
+        if self.max_task >= self.task_num:
+            return False
 
     def reset_task(self):
         self.max_task = 0
 
     def sample_task(self):
-        self.current_task = random.randint(0, self.max_task)
+        # self.current_task = random.randint(0, self.max_task)
+        self.current_before = self.current_task
+        self.current_task = self.max_task
 
     def get_maze(self, i=None):
         if i is None:
