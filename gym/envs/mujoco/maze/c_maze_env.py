@@ -227,6 +227,8 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
                                self.get_current_maze_obs(),
                                self.maze_dataset.get_curr_enc(),
                                ])
+    def get_current_enc(self):
+        return self.maze_dataset.get_curr_enc()
 
     def get_ori(self):
         """
