@@ -39,6 +39,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
             dist_coef=1.,
             time_punish=0.0033,
             short_coef=66.,
+            maze_sample=True,
             *args,
             **kwargs):
         utils.EzPickle.__init__(self)
@@ -52,7 +53,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.coef_inner_rew = coef_inner_rew
         self.goal_rew = goal_rew
         json_path = osp.join(os.path.dirname(os.path.realpath(__file__)), "meta_maze.json")
-        self.maze_dataset = MazeDataset(json_path)
+        self.maze_dataset = MazeDataset(json_path, maze_sample)
         self.maze_name = self.MAZE_STRUCTURE = self.h = self.w = self.inner_env = None
         self._init_torso_x = self._init_torso_y = None
         self.MAZE_SIZE_SCALING = maze_size_scaling

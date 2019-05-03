@@ -4,7 +4,7 @@ import numpy as np
 
 
 class MazeDataset():
-    def __init__(self, maze_json):
+    def __init__(self, maze_json, sample=True):
         self.fliplr=False
         self.flipud=False
 
@@ -16,6 +16,7 @@ class MazeDataset():
         self.max_task = 0
         self.current_task = None
         self.current_before = None
+        self.sample = sample
 
     def read_maze(self, filename):
         print(filename)
@@ -38,9 +39,11 @@ class MazeDataset():
         self.max_task = 0
 
     def sample_task(self):
-        # self.current_task = random.randint(0, self.max_task)
         self.current_before = self.current_task
-        self.current_task = self.max_task
+        if self.sample == True:
+            self.current_task = random.randint(0, self.max_task)
+        else:
+            self.current_task = self.max_task
 
     def get_maze(self, i=None):
         if i is None:
