@@ -11,7 +11,6 @@ class MazeDataset():
         self.scale = 1
         self.maze_list = self.read_maze(maze_json)
         self.task_num = len(self.maze_list)
-        print(self.maze_list)
         print(self.task_num)
         self.max_task = 0
         self.current_task = None
@@ -19,7 +18,6 @@ class MazeDataset():
         self.sample = sample
 
     def read_maze(self, filename):
-        print(filename)
         with open(filename) as f:
             maze_dic = json.load(f)
         maze_list=[]
