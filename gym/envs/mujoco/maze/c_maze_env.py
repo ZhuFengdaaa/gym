@@ -139,7 +139,9 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.maze_dataset.reset_task()
 
     def next_task(self):
-        return self.maze_dataset.next_task()
+        status = self.maze_dataset.next_task()
+        self.reset()
+        return status
 
     def update_maze(self):
         self.maze_name, self.MAZE_STRUCTURE = self.maze_dataset.get_maze()
