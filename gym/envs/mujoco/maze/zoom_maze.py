@@ -34,7 +34,7 @@ for (name, maze) in maze_list:
                         new_maze[_h].append(0)
                 new_maze[int(zoom/2+zoom*h)][int(zoom/2+zoom*w)]=maze[h][w]
     print(new_maze)
-    out_dict[name]=new_maze
+    out_dict[name]=[new_maze]
 
 with open(out_filename, "w") as f:
     json.dump(out_dict, f, indent=4)
