@@ -267,6 +267,13 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         ub = BIG * np.ones(shp)
         return spaces.Box(ub * -1, ub)
 
+    @property
+    def observation_space1(self):
+        shp = self._get_obs().shape
+        shp1 = (shp[0]-self.maze_dataset.task_num,)
+        ub = BIG * np.ones(shp1)
+        return spaces.Box(ub * -1, ub)
+
     # space of only the robot observations (they go first in the get current obs) THIS COULD GO IN PROXYENV
     @property
     def robot_observation_space(self):
