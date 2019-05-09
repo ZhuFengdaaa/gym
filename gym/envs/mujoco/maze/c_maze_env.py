@@ -161,6 +161,8 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
 
     def next_task(self):
         status = self.maze_dataset.next_task()
+        if status is False: # fixed test bug: final maze don't need reset()
+            return status
         self.reset()
         return status
 
