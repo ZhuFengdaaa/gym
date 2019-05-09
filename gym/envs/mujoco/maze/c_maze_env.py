@@ -126,6 +126,24 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.inner_env = model_cls(*(self.args), file_path=file_path, **(self.kwargs))  # file to the robot specifications
         ProxyEnv.update(self, self.inner_env)  # update proxy
 
+    def set_maze_sample(self, state):
+        self.maze_dataset.sample = state
+        return True
+
+    def get_task_state(self):
+        qpos = self.wrapped_env.sim.data.qpos
+        qvel = self.wrapped_env.sim.data.qvel
+        assert(qpos.shape == (self.wrapped_env.model.nq,) and qvel.shape == (self.wrapped_env.model.nv,))
+        e_id = self.maze_dataset.max_task
+        return (qpos, qvel, e_id)
+
+    def set_task_state(self, qpos, qvel, e_id):
+        assert(self.maze_dataset.sample == False)
+        self.maze_dataset.max_task = e_id
+        self.reset() # to load maze map
+        self.wrapped_env.set_state(qpos, qvel) # set robot
+        return True
+
     def get_task_num(self):
         return self.maze_dataset.task_num
 
@@ -134,6 +152,9 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
 
     def get_max_task_name(self):
         return self.maze_dataset.get_maze(self.maze_dataset.max_task)[0]
+
+    def set_task(self, e_id):
+        self.maze_dataset.set_task(e_id)
 
     def reset_task(self):
         self.maze_dataset.reset_task()
@@ -225,6 +246,11 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
     def get_current_robot_obs(self):
         return self.wrapped_env._get_obs()
 
+    def get_obs(self):
+        return np.concatenate([self.wrapped_env._get_obs(),
+                               self.get_current_maze_obs(),
+                               self.maze_dataset.get_curr_enc(),
+                               ])
     def _get_obs(self):
         return np.concatenate([self.wrapped_env._get_obs(),
                                self.get_current_maze_obs(),
@@ -263,6 +289,13 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
     def observation_space(self):
         shp = self._get_obs().shape
         ub = BIG * np.ones(shp)
+        return spaces.Box(ub * -1, ub)
+
+    @property
+    def observation_space1(self):
+        shp = self._get_obs().shape
+        shp1 = (shp[0]-self.maze_dataset.task_num,)
+        ub = BIG * np.ones(shp1)
         return spaces.Box(ub * -1, ub)
 
     # space of only the robot observations (they go first in the get current obs) THIS COULD GO IN PROXYENV
