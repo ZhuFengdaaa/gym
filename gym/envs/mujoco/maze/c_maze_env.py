@@ -134,7 +134,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         qpos = self.wrapped_env.sim.data.qpos
         qvel = self.wrapped_env.sim.data.qvel
         assert(qpos.shape == (self.wrapped_env.model.nq,) and qvel.shape == (self.wrapped_env.model.nv,))
-        e_id = self.maze_dataset.max_task
+        e_id = self.maze_dataset.current_task
         return (qpos, qvel, e_id)
 
     def set_task_state(self, qpos, qvel, e_id):
