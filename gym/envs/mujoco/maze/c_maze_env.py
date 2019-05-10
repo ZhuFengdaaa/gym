@@ -353,15 +353,26 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         # print(x,y,self._init_torso_x, self.MAZE_SIZE_SCALING, self.w)
         _x = ((x + self._init_torso_x)/self.MAZE_SIZE_SCALING+0.5)/self.w
         _y = ((y + self._init_torso_y)/self.MAZE_SIZE_SCALING+0.5)/self.h
+        # ugly fix
+        if not (0<=_x<1 and 0<=_y<1): 
+            print("clip: ", _x, _y, x, y)
+            _x = min(max(_x, 0), 0.999)
+            _y = min(max(_y, 0), 0.999)
         return _x, _y
 
     @property
     def shorten_dist(self):
-        _x, _y = self.normalize(self.x, self.y)
-        end_dist = self.maze_solver.distance((_y, _x))
-        __x, __y = self.normalize(0, 0)
-        start_dist = self.maze_solver.distance((__y, __x))
-        return start_dist - end_dist
+        # ugly fix
+        try:
+            _x, _y = self.normalize(self.x, self.y)
+            end_dist = self.maze_solver.distance((_y, _x))
+            __x, __y = self.normalize(0, 0)
+            start_dist = self.maze_solver.distance((__y, __x))
+            return start_dist - end_dist
+        except Exception as e:
+            print("except in shorten_dist")
+            print(_x, _y, __x, __y)
+            return 0
 
     def step(self, action):
         if self.MANUAL_COLLISION:
@@ -379,7 +390,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         x, y = self.wrapped_env.get_body_com("torso")[:2]
         (self.x, self.y) = (x,y)
         _x, _y = self.normalize(x, y)
-        dist = self.maze_solver.distance((_y, _x))
+        dist = self.maze_solver.distance((_y, _x), (y,x))
         # ref_x = x + self._init_torso_x
         # ref_y = y + self._init_torso_y
         info['outer_rew'] = 0

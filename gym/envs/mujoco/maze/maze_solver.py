@@ -98,7 +98,7 @@ class MazeSolver():
                 if self.graph[i][j]=='g':
                     self.g = (i,j)
 
-    def distance(self, pos):
+    def distance(self, pos, debug_info=None):
         """
         pos=(h,w), xy are normalized into [0,1)
         """
@@ -112,7 +112,6 @@ class MazeSolver():
                     print(self.graph[i][j], end=' ')
                 print()
         # print(len(self.graph), len(self.graph[0]), self.h, self.w)
-        assert(0<=pos[0]<1 and 0<=pos[1]<1)
         # assert(self.graph[int(pos[0]*self.h)][int(pos[1]*self.w)]!=1)
         return self.mp[int(pos[0]*self.h)][int(pos[1]*self.w)]/self.fine_grain
 
