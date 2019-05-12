@@ -52,7 +52,7 @@ class CMazeEnv(ProxyEnv, utils.EzPickle):
         self.length = length
         self.coef_inner_rew = coef_inner_rew
         self.goal_rew = goal_rew
-        json_path = osp.join(os.path.dirname(os.path.realpath(__file__)), "meta_maze.json")
+        json_path = osp.join(os.path.dirname(os.path.realpath(__file__)), "maze_zoom_2.json")
         self.maze_dataset = MazeDataset(json_path, maze_sample)
         self.maze_name = self.MAZE_STRUCTURE = self.h = self.w = self.inner_env = None
         self._init_torso_x = self._init_torso_y = None
