@@ -39,7 +39,29 @@ class MazeDataset():
     def sample_task(self):
         self.current_before = self.current_task
         if self.sample == True:
+            # Method 1
             self.current_task = random.randint(0, self.max_task)
+
+            # Method 2 : [0.5/(i-1), ..., 0.5]
+            # p = [0.5]
+            # for i in range(1, self.max_task + 1):
+            #     p.insert(0, 0.5 / self.max_task)
+            # if len(p) == 1:  # self.max_task = 0
+            #     p[0] = 1
+            #
+            # self.current_task = np.random.choice(self.max_task + 1, 1, p=p)[0]  # [0, self.max_task]
+
+            # Method 3 : softmax
+            # def softmax(x):
+            #     exp_x = np.exp(x)
+            #     softmax_x = exp_x / np.sum(exp_x)
+            #     return softmax_x
+            # p = softmax(np.arange(self.max_task + 1) // 2)
+            # self.current_task = np.random.choice(self.max_task + 1, 1, p=p)[0]
+
+            # Method 4 : no sample
+            # self.current_task = self.max_task
+
         else:
             self.current_task = self.max_task
 
